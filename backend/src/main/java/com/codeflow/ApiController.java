@@ -17,7 +17,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.*;
 import java.util.stream.*;
-@RestController @RequestMapping("/api")class ApiController  {
+@RestController @RequestMapping("/api")
+class ApiController  {
     private final UserRepository users;
     private final TaskRepository tasks;
     private final TimeLogRepository logs;

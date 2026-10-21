@@ -7,7 +7,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-/** Development-only sample accounts and activity; enable with app.seed.enabled=true. */@Component@ConditionalOnProperty(name="app.seed.enabled", havingValue="true")class DevelopmentSeeder implements CommandLineRunner  {
+/** Development-only sample accounts and activity; enable with app.seed.enabled=true. */
+@Component
+@ConditionalOnProperty(name="app.seed.enabled", havingValue="true")
+class DevelopmentSeeder implements CommandLineRunner  {
     private final UserRepository users;
     private final TaskRepository tasks;
     private final CategoryRepository categories;

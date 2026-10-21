@@ -18,7 +18,8 @@ import org.springframework.web.cors.*;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.*;
-@Configurationclass SecurityConfig  {
+@Configuration
+class SecurityConfig  {
     @Bean PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
