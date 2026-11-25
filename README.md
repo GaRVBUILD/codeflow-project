@@ -41,6 +41,7 @@ cp .env.example .env
 # Generate two separate values and put them in DATABASE_PASSWORD and JWT_SECRET.
 node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Edit .env and paste in those values before starting Compose.
 # Set APP_SEED_ENABLED=true only when you explicitly want local sample data.
 docker compose up --build -d
 docker compose ps
@@ -74,12 +75,12 @@ CREATE DATABASE codeflow OWNER codeflow;
 
 ### 2. Start the backend
 
-Open a terminal at the repository root and set the connection values for that terminal. The commands below use PowerShell; replace the database password and JWT secret with your local values.
+Open a terminal at the repository root and set the connection values for that terminal. The commands below use PowerShell. Set `DATABASE_PASSWORD` to the same password used in the `CREATE USER` command above; choose a separate random value for `JWT_SECRET`.
 
 ```powershell
 $env:DATABASE_URL = "jdbc:postgresql://localhost:5432/codeflow"
 $env:DATABASE_USERNAME = "codeflow"
-$env:DATABASE_PASSWORD = node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+$env:DATABASE_PASSWORD = "replace-with-the-same-password-used-in-psql"
 $env:JWT_SECRET = node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 $env:CORS_ORIGIN = "http://localhost:5173"
 $env:APP_SEED_ENABLED = "false"
