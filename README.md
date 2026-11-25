@@ -27,6 +27,8 @@ Run these commands from the repository root. Docker Compose reads the `.env` fil
 
 ```powershell
 Copy-Item .env.example .env
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 notepad .env
 docker compose up --build -d
 docker compose ps
@@ -36,7 +38,10 @@ docker compose ps
 
 ```bash
 cp .env.example .env
-# Edit .env and replace the example database password and JWT secret.
+# Generate two separate values and put them in DATABASE_PASSWORD and JWT_SECRET.
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Set APP_SEED_ENABLED=true only when you explicitly want local sample data.
 docker compose up --build -d
 docker compose ps
 ```
@@ -48,7 +53,7 @@ Wait for the `db`, `backend`, and `frontend` services to start, then open:
 
 To follow service logs, run `docker compose logs -f backend frontend`. Press `Ctrl+C` to stop following logs. Stop the stack with `docker compose down`; this keeps the PostgreSQL data volume so your data is still there next time.
 
-The development Compose configuration enables seed data. Sign in with `demo@codeflow.local` / `Demo1234!` to see sample tasks and time logs, or `admin@codeflow.local` / `AdminDemo123!` to open the admin dashboard. These accounts are for local development only. The current Compose file sets `APP_SEED_ENABLED=true`; before adapting the Compose setup for a non-demo deployment, change that value to `false` and replace all development secrets and passwords.
+Compose requires non-empty `DATABASE_PASSWORD` and `JWT_SECRET` values; it has no credential fallbacks. The Compose default keeps sample seeding disabled. To create the documented demo user (`demo@codeflow.local` / `Demo1234!`) and admin (`admin@codeflow.local` / `AdminDemo123!`) for a local-only demo, set `APP_SEED_ENABLED=true` in `.env` before starting the stack. Seeded accounts use published development passwords, so never enable seeding for a public deployment.
 
 ## Run manually without Docker
 
@@ -74,15 +79,15 @@ Open a terminal at the repository root and set the connection values for that te
 ```powershell
 $env:DATABASE_URL = "jdbc:postgresql://localhost:5432/codeflow"
 $env:DATABASE_USERNAME = "codeflow"
-$env:DATABASE_PASSWORD = "replace-with-a-local-password"
-$env:JWT_SECRET = "replace-with-a-random-secret-at-least-32-characters"
+$env:DATABASE_PASSWORD = node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
+$env:JWT_SECRET = node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 $env:CORS_ORIGIN = "http://localhost:5173"
-$env:APP_SEED_ENABLED = "true"
+$env:APP_SEED_ENABLED = "false"
 Set-Location backend
 mvn spring-boot:run
 ```
 
-Keep this terminal running. Hibernate creates or updates the local tables when the backend starts. Setting `APP_SEED_ENABLED` to `true` creates the development demo accounts and sample data.
+Keep this terminal running. Flyway applies the database migrations when the backend starts. Set `APP_SEED_ENABLED` to `true` only if you want the local development demo accounts and sample data.
 
 ### 3. Start the frontend
 
@@ -100,7 +105,7 @@ For non-PowerShell shells, export the same environment variables before running 
 
 ## Stack and structure
 
-- `backend`: Spring Web, Security, Data JPA, Jakarta Validation, JWT, PostgreSQL.
+- `backend`: Spring Web, Security, Spring JDBC, Flyway, Jakarta Validation, JWT, PostgreSQL.
 - `frontend`: React, Vite, React Router, Axios, Tailwind CSS, Recharts, Lucide.
 - `docker-compose.yml`: frontend, backend, and PostgreSQL services.
 
@@ -116,4 +121,16 @@ Importance is normalized onto 0–1 from the user supplied 1–5 rating. Deadlin
 
 ## Development notes
 
-Tables are created/updated by Hibernate for a local student project. Seeding runs only when `APP_SEED_ENABLED=true`; it is idempotent and creates the demo accounts, categories, tasks, rules, and time logs. Development mode uses environment fallbacks for the local database; replace them before exposing a deployment. Add migrations, refresh-token/revocation handling, richer filter/sort controls, integration tests and production secrets management before production use.
+Flyway migrations manage the database schema. Seeding is disabled by default and runs only when `APP_SEED_ENABLED=true`; it creates the demo accounts, categories, tasks, rules, and time logs. Configure unique credentials and keep seeding disabled outside local development. Run backend tests with `mvn test` from `backend`. PostgreSQL integration tests use Testcontainers when Docker is available; tests named `CODEFLOW_TEST_DATABASE_*` can target a separate disposable PostgreSQL test database instead. Those integration tests truncate their test tables, so never point them at a database with data to keep.
+
+For the PostgreSQL integration tests, set `CODEFLOW_TEST_DATABASE_URL`, `CODEFLOW_TEST_DATABASE_USERNAME`, and `CODEFLOW_TEST_DATABASE_PASSWORD` to a separate disposable PostgreSQL database before running `mvn test`. The tests verify Flyway migrations, timer concurrency, and that regular users are denied access to admin routes while admins can access them.
+
+### Browser end-to-end check
+
+With the Docker app running and the local demo account seeded, run the following from `frontend`. The test signs in, creates a task, verifies it appears, then deletes it. It defaults to the local demo credentials; set `CODEFLOW_E2E_EMAIL` and `CODEFLOW_E2E_PASSWORD` to use another test account. Set `CODEFLOW_WEB_URL` and `CODEFLOW_API_URL` if the app uses different local addresses.
+
+```powershell
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
